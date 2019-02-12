@@ -104,5 +104,8 @@ def main():
     total_detail = parallelize_dataframe(total_vancouver,get_house_detail_to_df)
     total_detail.to_excel('total_detail.xlsx')
     
+    total_vancouver = total_vancouver.merge(total_detail,on='id').reset_index(drop=True)
+    total_vancouver.to_excel('final.xlsx')
+    
 if __name__ == "__main__":
     main()
