@@ -49,47 +49,44 @@ def save_to_excel(type_code,endpage, reponses):
     total_listing.to_excel('total_vancouver_{}_data.xlsx'.format(type_code))
     return total_listing
     
-def get_house_detail(dataframe):
-    all_house_response = []
+def get_house_detail_to_df(dataframe):
+    # container
     ids = []
+    temp_info = pd.DataFrame()
+    
     for ide in tqdm(dataframe.id.values):
         req = requests.get(ROOT_URL+'/house-{}.aspx'.format(int(ide)))
         temp_soup = BeautifulSoup(req.text, "lxml")
         if temp_soup.find('tbody') is None:
             pass       
         else:
+            # do stuff here
             house_info_table = temp_soup.find('tbody')
-            all_house_response.append(house_info_table)
-            ids.append(ide)
-            sleep(0.5)
-    return all_house_response, ids
-   
-def get_info_to_df(house_reponse, ids):
-    temp_info = pd.DataFrame()
-    for house in tqdm(house_reponse):
-        temp = pd.DataFrame({'MLS_number': house.find('input',{'class':'house_mslno'})['value'],
-                             'listed_date': house.find('td',title=True).text,
-                             'house_size':house.find_all('span',{'class':'numb area'})[0].text,
-                             'land_size':house.find_all('span',{'class':'numb area'})[1].text ,
-                             'feature':house.findAll('td',attrs={'class': None})[3].text,
-                             'land_tax':house.findAll('td',attrs={'class': None})[5].text
+            # add record to dataframe
+            house_info_table = pd.DataFrame({'MLS_number': house_info_table.find('input',{'class':'house_mslno'})['value'],
+                             'listed_date': house_info_table.find('td',title=True).text,
+                             'house_size':house_info_table.find_all('span',{'class':'numb area'})[0].text,
+                             'land_size':house_info_table.find_all('span',{'class':'numb area'})[1].text ,
+                             'feature':house_info_table.findAll('td',attrs={'class': None})[3].text,
+                             'land_tax':house_info_table.findAll('td',attrs={'class': None})[5].text
                             }, index=[0])
-
-        temp_info = pd.concat([temp_info, temp])
+            # add id
+            ids.append(ide)
+            temp_info = pd.concat([temp_info, house_info_table])
+            sleep(1)
+     # add ids to dataframe
     temp_info['id'] = ids
-    temp_info = temp_info.reset_index(drop=True)
+    temp_info = temp_info.reset_index(drop=True)     
     return temp_info
-
 
 def parallelize_dataframe(df, func):
     df_split = np.array_split(df, num_partitions)
     pool = Pool(num_cores)
-    temp, ids = pool.map(func, df_split)
+    df = pd.concat(pool.map(func, df_split))
     pool.close()
     pool.join()
-    return temp, ids
+    return df
     
-
 def main():
     # get house data
     house_data = get_listing_data(2,692)
