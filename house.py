@@ -47,18 +47,55 @@ def save_to_excel(type_code,endpage, reponses):
         chunk_of_df.append(get_info_per_page(reponses[page]))
     total_listing = pd.concat(chunk_of_df,ignore_index=True)
     total_listing.to_excel('total_vancouver_{}_data.xlsx'.format(type_code))
+    return total_listing
+    
+def get_house_detail(dataframe):
+    all_house_response = []
+    ids = []
+    for ide in tqdm(dataframe.id.values):
+        req = requests.get(ROOT_URL+'/house-{}.aspx'.format(int(ide)))
+        temp_soup = BeautifulSoup(req.text, "lxml")
+        house_info_table = temp_soup.find('table',{"class":"houseTable"}).find('tbody')
+        all_house_response.append(house_info_table)
+        ids.append(ide)
+    return all_house_response, ids
+
+def get_info_per_house(house_reponse, ids):
+    temp_info = pd.DataFrame()
+    for house in house_reponse:
+        temp = pd.DataFrame({'MLS_number': house.find('input',{'class':'house_mslno'})['value'],
+                             'listed_date': house.find('td',title=True).text,
+                             'house_size':house.find_all('span',{'class':'numb area'})[0].text,
+                             'land_size':house.find_all('span',{'class':'numb area'})[1].text ,
+                             'feature':house.findAll('td',attrs={'class': None})[3].text,
+                             'land_tax':house.findAll('td',attrs={'class': None})[5].text
+                            }, index=[0])
+
+        temp_info = pd.concat([temp_info, temp])
+    temp_info['id'] = ids
+    temp_info = temp_info.reset_index(drop=True)
+    return temp_info
     
 
 def main():
     # get house data
     house_data = get_listing_data(2,692)
-    save_to_excel(2,692, house_data)
+    house = save_to_excel(2,692, house_data)
     # get townhouse data
     townhouse_data = get_listing_data(2,267)
-    save_to_excel(2,267, townhouse_data)
+    townhouse = save_to_excel(2,267, townhouse_data)
     # get apartment data
     apartment_data = get_listing_data(3,542)
-    save_to_excel(3,542, apartment_data)
+    apartment = save_to_excel(3,542, apartment_data)
+    # total data
+    total_vancouver = pd.concat([house,townhouse,apartment]).reset_index(drop=True)
+    
+    # get house detail
+    all_house_response, ids = get_house_detail(total_vancouver)
+    house_info = get_info_per_house(all_house_response,ids)
+    
+    # merge two dataframe together
+    total_vancouver = total_vancouver.merge(house_info, on='id')
     
 if __name__ == "__main__":
     main()
