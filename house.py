@@ -101,11 +101,8 @@ def main():
     total_vancouver = pd.concat([house,townhouse,apartment]).reset_index(drop=True)
     
     # get house detail
-    all_house_response, ids = get_house_detail(total_vancouver)
-    house_info = get_info_per_house(all_house_response,ids)
-    
-    # merge two dataframe together
-    total_vancouver = total_vancouver.merge(house_info, on='id')
+    total_detail = parallelize_dataframe(total_vancouver,get_house_detail_to_df)
+    total_detail.to_excel('total_detail.xlsx')
     
 if __name__ == "__main__":
     main()
