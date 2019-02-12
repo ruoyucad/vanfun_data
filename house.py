@@ -55,14 +55,18 @@ def get_house_detail(dataframe):
     for ide in tqdm(dataframe.id.values):
         req = requests.get(ROOT_URL+'/house-{}.aspx'.format(int(ide)))
         temp_soup = BeautifulSoup(req.text, "lxml")
-        house_info_table = temp_soup.find('table',{"class":"houseTable"}).find('tbody')
-        all_house_response.append(house_info_table)
-        ids.append(ide)
+        if temp_soup.find('tbody') is None:
+            pass       
+        else:
+            house_info_table = temp_soup.find('tbody')
+            all_house_response.append(house_info_table)
+            ids.append(ide)
+            sleep(0.5)
     return all_house_response, ids
-
-def get_info_per_house(house_reponse, ids):
+   
+def get_info_to_df(house_reponse, ids):
     temp_info = pd.DataFrame()
-    for house in house_reponse:
+    for house in tqdm(house_reponse):
         temp = pd.DataFrame({'MLS_number': house.find('input',{'class':'house_mslno'})['value'],
                              'listed_date': house.find('td',title=True).text,
                              'house_size':house.find_all('span',{'class':'numb area'})[0].text,
@@ -75,6 +79,15 @@ def get_info_per_house(house_reponse, ids):
     temp_info['id'] = ids
     temp_info = temp_info.reset_index(drop=True)
     return temp_info
+
+
+def parallelize_dataframe(df, func):
+    df_split = np.array_split(df, num_partitions)
+    pool = Pool(num_cores)
+    temp, ids = pool.map(func, df_split)
+    pool.close()
+    pool.join()
+    return temp, ids
     
 
 def main():
