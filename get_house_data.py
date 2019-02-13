@@ -6,6 +6,11 @@ import pandas as pd
 
 ROOT_URL = 'http://www.vanfun.net'
 
+def only_number(x):
+    x = re.findall('\d+', x)
+    x = int(x[0])+int(x[1])/100
+    return x
+
 def get_listing_data(type_code, endpage):
     '''
     type_code 1 = house
