@@ -97,14 +97,18 @@ def get_coord(dataframe):
     coords = []
     
     for row in tqdm(dataframe[['id','addresses']].iterrows()):
-        location = geolocator.geocode(row[1].addresses)
-        if location is None:
-            ids.append(row[1].id)
-            coords.append('Not Found')
-        else:
-            ids.append(row[1].id)
-            coords.append((location.latitude, location.longitude))
-            
+        try:
+            location = geolocator.geocode(row[1].addresses)
+            if location is None:
+                ids.append(row[1].id)
+                coords.append('Not Found')
+            else:
+                ids.append(row[1].id)
+                coords.append((location.latitude, location.longitude))
+            sleep(1)
+        except GeocoderTimedOut as e:
+            print("Error: geocode failed on input %s with message %s"%(row[1].addresses, e.message))
+            pass
     coords_df = pd.DataFrame({'ids':ids,
                              'coords':coords})
     return coords_df
