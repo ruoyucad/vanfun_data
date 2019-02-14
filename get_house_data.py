@@ -92,6 +92,23 @@ def parallelize_dataframe(df, func):
     pool.join()
     return df
     
+def get_coord(dataframe):
+    ids = []
+    coords = []
+    
+    for row in tqdm(dataframe[['id','addresses']].iterrows()):
+        location = geolocator.geocode(row[1].addresses)
+        if location is None:
+            ids.append(row[1].id)
+            coords.append('Not Found')
+        else:
+            ids.append(row[1].id)
+            coords.append((location.latitude, location.longitude))
+            
+    coords_df = pd.DataFrame({'ids':ids,
+                             'coords':coords})
+    return coords_df
+  
 def main():
     # get house data
     house_data = get_listing_data(2,692)
@@ -111,6 +128,10 @@ def main():
     
     total_vancouver = total_vancouver.merge(total_detail,on='id').reset_index(drop=True)
     total_vancouver.to_excel('final.xlsx')
+    
+    ## add coordinates 
+    coordinates = parallelize_dataframe(total_vancouver,get_coord)
+    total_vancouver = total_vancouver.merge(coordinates,on='id').reset_index(drop=True)
     
 if __name__ == "__main__":
     main()
