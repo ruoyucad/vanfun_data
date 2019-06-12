@@ -1,2 +1,3 @@
 # vanfun_data
-This repository scraps data from vanfun 
+The object of this project is to scraps housing data from vanfun housing website
+and provide Tableau dashboard visualizations.
